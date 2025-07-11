@@ -823,10 +823,10 @@ pub fn RenderEngineType(
             inline fn preserveLineBreaksAndIndentation(self: DataRender) bool {
                 return !PartialsMap.isEmpty() and
                     switch (options) {
-                    .template => self.template_options.features.preserve_line_breaks_and_indentation,
-                    .string => |string| string.features.preserve_line_breaks_and_indentation,
-                    .file => |file| file.features.preserve_line_breaks_and_indentation,
-                };
+                        .template => self.template_options.features.preserve_line_breaks_and_indentation,
+                        .string => |string| string.features.preserve_line_breaks_and_indentation,
+                        .file => |file| file.features.preserve_line_breaks_and_indentation,
+                    };
             }
 
             fn renderLevel(
@@ -1260,7 +1260,7 @@ pub fn RenderEngineType(
                     .comptime_int,
                     .float,
                     .comptime_float,
-                    => return std.fmt.count("{d}", .{value}),
+                    => return @as(usize, @truncate(std.fmt.count("{d}", .{value}))),
                     .@"enum" => return @tagName(value).len,
                     .pointer => |info| switch (info.size) {
                         .one => return if (comptime stdx.canDeref(TValue)) self.valueCapacityHint(value.*) else 0,
