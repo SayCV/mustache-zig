@@ -40,7 +40,7 @@ pub fn ContextType(
             data_render: *DataRender,
             escape: Escape,
 
-            fn write(ctx: ?*anyopaque, value: ?[*]const u8, len: u32) callconv(.C) extern_types.Status {
+            fn write(ctx: ?*anyopaque, value: ?[*]const u8, len: u32) callconv(.c) extern_types.Status {
                 if (ctx) |handle| {
                     if (value) |buffer| {
                         var self = @as(*@This(), @ptrCast(@alignCast(handle)));
@@ -424,7 +424,7 @@ const context_tests = struct {
         name: []const u8,
         boss: ?*Person = null,
 
-        pub fn get(user_data_handle: extern_types.UserDataHandle, path: *const extern_types.Path, out_value: *extern_types.UserData) callconv(.C) extern_types.PathResolution {
+        pub fn get(user_data_handle: extern_types.UserDataHandle, path: *const extern_types.Path, out_value: *extern_types.UserData) callconv(.c) extern_types.PathResolution {
             if (path.root) |root| {
                 var path_part = root;
                 const path_value = path_part.value[0..path_part.size];
@@ -463,7 +463,7 @@ const context_tests = struct {
             return .NOT_FOUND_IN_CONTEXT;
         }
 
-        pub fn capacityHint(user_data_handle: extern_types.UserDataHandle, path: *const extern_types.Path, out_value: *u32) callconv(.C) extern_types.PathResolution {
+        pub fn capacityHint(user_data_handle: extern_types.UserDataHandle, path: *const extern_types.Path, out_value: *u32) callconv(.c) extern_types.PathResolution {
             if (path.root) |root| {
                 var path_part = root;
                 const path_value = path_part.value[0..path_part.size];
@@ -498,7 +498,7 @@ const context_tests = struct {
             return .NOT_FOUND_IN_CONTEXT;
         }
 
-        pub fn interpolate(writer_handle: extern_types.WriterHandle, writer_fn: extern_types.WriteFn, user_data_handle: extern_types.UserDataHandle, path: *const extern_types.Path) callconv(.C) extern_types.PathResolution {
+        pub fn interpolate(writer_handle: extern_types.WriterHandle, writer_fn: extern_types.WriteFn, user_data_handle: extern_types.UserDataHandle, path: *const extern_types.Path) callconv(.c) extern_types.PathResolution {
             if (path.root) |root| {
                 var path_part = root;
                 const path_value = path_part.value[0..path_part.size];
@@ -552,7 +552,7 @@ const context_tests = struct {
             lambda_handle: extern_types.LambdaHandle,
             user_data_handle: extern_types.UserDataHandle,
             path: *const extern_types.Path,
-        ) callconv(.C) extern_types.PathResolution {
+        ) callconv(.c) extern_types.PathResolution {
             _ = lambda_handle;
             _ = user_data_handle;
             _ = path;
