@@ -26,24 +26,24 @@ pub fn PartialsMapType(comptime TPartials: type, comptime comptime_options: Rend
         allocator: if (options != .template and !isEmpty()) Allocator else void,
         partials: TPartials,
 
-        pub usingnamespace switch (options) {
-            .template => struct {
-                pub fn init(partials: TPartials) PartialsMap {
-                    return .{
-                        .allocator = {},
-                        .partials = partials,
-                    };
-                }
-            },
-            .string, .file => struct {
-                pub fn init(allocator: Allocator, partials: TPartials) PartialsMap {
-                    return .{
-                        .allocator = if (comptime isEmpty()) {} else allocator,
-                        .partials = partials,
-                    };
-                }
-            },
+        pub const init = switch (options) {
+            .template => initTemplate,
+            .string, .file => initStringOrFile,
         };
+
+        pub fn initTemplate(partials: TPartials) PartialsMap {
+            return .{
+                .allocator = {},
+                .partials = partials,
+            };
+        }
+
+        pub fn initStringOrFile(allocator: Allocator, partials: TPartials) PartialsMap {
+            return .{
+                .allocator = if (comptime isEmpty()) {} else allocator,
+                .partials = partials,
+            };
+        }
 
         pub fn isEmpty() bool {
             return switch (@typeInfo(TPartials)) {
@@ -172,7 +172,7 @@ pub fn PartialsMapType(comptime TPartials: type, comptime comptime_options: Rend
                         const kv: KV = undefined;
                         return stdx.isZigString(@TypeOf(kv.key)) and
                             (@TypeOf(kv.value) == PartialsMap.Template or
-                            (stdx.isZigString(@TypeOf(kv.value)) and stdx.isZigString(PartialsMap.Template)));
+                                (stdx.isZigString(@TypeOf(kv.value)) and stdx.isZigString(PartialsMap.Template)));
                     }
                 }
 

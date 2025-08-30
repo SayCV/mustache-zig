@@ -26,7 +26,7 @@ const context = @import("context.zig");
 const Escape = context.Escape;
 const Fields = context.Fields;
 
-const ffi_context = @import("/contexts/ffi/context.zig");
+const ffi_context = @import("contexts/ffi/context.zig");
 const ffi_extern_types = @import("../ffi/extern_types.zig");
 
 pub const LambdaContext = context.LambdaContext;
