@@ -639,7 +639,7 @@ fn internalAllocRender(
 ) !if (sentinel) |z| [:z]const u8 else []const u8 {
     comptime assert(options == .template);
 
-    var list = std.ArrayList(u8).init(allocator);
+    var list = std.array_list.Managed(u8).init(allocator);
     defer list.deinit();
 
     const context_source = comptime ContextSource.fromData(@TypeOf(data));
@@ -698,7 +698,7 @@ fn internalAllocCollect(
 ) !if (sentinel) |z| [:z]const u8 else []const u8 {
     comptime assert(options != .template);
 
-    var list = std.ArrayList(u8).init(allocator);
+    var list = std.array_list.Managed(u8).init(allocator);
     defer list.deinit();
 
     const context_source = comptime ContextSource.fromData(@TypeOf(data));
@@ -746,7 +746,7 @@ pub fn RenderEngineType(
 
             /// Render to a intermediate buffer
             /// for processing lambda expansions
-            buffer: std.ArrayList(u8).Writer,
+            buffer: std.array_list.Managed(u8).Writer,
         };
 
         pub const DataRender = struct {
@@ -1351,7 +1351,7 @@ pub fn RenderEngineType(
             try data_render.render(template.elements);
         }
 
-        pub fn bufRender(writer: std.ArrayList(u8).Writer, template: Template, data: anytype, partials_map: PartialsMap) !void {
+        pub fn bufRender(writer: std.array_list.Managed(u8).Writer, template: Template, data: anytype, partials_map: PartialsMap) !void {
             comptime assert(options == .template);
 
             const Data = @TypeOf(data);
@@ -1405,7 +1405,7 @@ pub fn RenderEngineType(
 
         pub fn bufCollect(
             allocator: Allocator,
-            writer: std.ArrayList(u8).Writer,
+            writer: std.array_list.Managed(u8).Writer,
             template: []const u8,
             data: anytype,
             partials_map: PartialsMap,
@@ -4365,7 +4365,7 @@ const tests = struct {
         const DummyPartialsMap = map.PartialsMapType(@TypeOf(.{ "foo", "bar" }), dummy_options);
         const RenderEngine = RenderEngineType(
             .native,
-            std.ArrayList(u8).Writer,
+            std.array_list.Managed(u8).Writer,
             DummyPartialsMap,
             dummy_options,
         );
@@ -4449,7 +4449,7 @@ const tests = struct {
 
         fn expectEscapeAndIndent(expected: []const u8, value: []const u8, escape: Escape, indentation_queue: *IndentationQueue) !void {
             const allocator = testing.allocator;
-            var list = std.ArrayList(u8).init(allocator);
+            var list = std.array_list.Managed(u8).init(allocator);
             defer list.deinit();
 
             var data_render = RenderEngine.DataRender{
