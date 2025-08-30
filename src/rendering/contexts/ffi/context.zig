@@ -511,7 +511,7 @@ const context_tests = struct {
                 if (std.mem.eql(u8, path_value, "id")) {
                     if (root.next != null) return .NOT_FOUND_IN_CONTEXT;
                     var buffer: [64]u8 = undefined;
-                    const len = std.fmt.formatIntBuf(&buffer, person.id, 10, .lower, .{});
+                    const len = std.fmt.printInt(&buffer, person.id, 10, .lower, .{});
 
                     const ret = writer_fn(writer_handle, &buffer, @intCast(len));
                     if (ret != .SUCCESS) return .CHAIN_BROKEN;

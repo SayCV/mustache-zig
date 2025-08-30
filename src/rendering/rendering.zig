@@ -1064,7 +1064,7 @@ pub fn RenderEngineType(
                     .bool => try self.flushToWriter(writer, if (value) "true" else "false", escape),
                     .int, .comptime_int => {
                         var buf: [128]u8 = undefined;
-                        const size = std.fmt.formatIntBuf(&buf, value, 10, .lower, .{});
+                        const size = std.fmt.printInt(&buf, value, 10, .lower, .{});
                         try self.flushToWriter(writer, buf[0..size], escape);
                     },
                     .float, .comptime_float => {
