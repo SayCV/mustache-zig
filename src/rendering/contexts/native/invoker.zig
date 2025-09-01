@@ -23,6 +23,8 @@ const map = @import("../../partials_map.zig");
 const lambda = @import("lambda.zig");
 const LambdaInvokerType = lambda.LambdaInvokerType;
 
+const WriterError = std.Io.Writer.Error;
+
 pub fn InvokerType(
     comptime Writer: type,
     comptime PartialsMap: type,
@@ -368,9 +370,9 @@ pub fn InvokerType(
             data: anytype,
             path: Element.Path,
             escape: Escape,
-        ) (Allocator.Error || Writer.Error)!PathResolutionType(void) {
+        ) (Allocator.Error || WriterError)!PathResolutionType(void) {
             const InterpolatePathInvoker = PathInvokerType(
-                Allocator.Error || Writer.Error,
+                Allocator.Error || WriterError,
                 void,
                 interpolateAction,
             );
@@ -403,9 +405,9 @@ pub fn InvokerType(
             escape: Escape,
             delimiters: Delimiters,
             path: Element.Path,
-        ) (Allocator.Error || Writer.Error)!PathResolutionType(void) {
+        ) (Allocator.Error || WriterError)!PathResolutionType(void) {
             const ExpandLambdaPathInvoker = PathInvokerType(
-                Allocator.Error || Writer.Error,
+                Allocator.Error || WriterError,
                 void,
                 expandLambdaAction,
             );
@@ -425,7 +427,7 @@ pub fn InvokerType(
         fn interpolateAction(
             params: anytype,
             value: anytype,
-        ) (Allocator.Error || Writer.Error)!void {
+        ) (Allocator.Error || WriterError)!void {
             if (comptime !stdx.isTuple(@TypeOf(params)) and params.len != 2) {
                 @compileError("Incorrect params " ++ @typeName(@TypeOf(params)));
             }
@@ -445,14 +447,14 @@ pub fn InvokerType(
         fn expandLambdaAction(
             params: anytype,
             value: anytype,
-        ) (Allocator.Error || Writer.Error)!void {
+        ) (Allocator.Error || WriterError)!void {
             if (comptime !stdx.isTuple(@TypeOf(params)) and params.len != 4) {
                 @compileError("Incorrect params " ++ @typeName(@TypeOf(params)));
             }
 
             if (comptime !lambda.isLambdaInvoker(@TypeOf(value))) return;
 
-            const Error = Allocator.Error || Writer.Error;
+            const Error = Allocator.Error || WriterError;
 
             const data_render: *DataRender = params.@"0";
             const inner_text: []const u8 = params.@"1";

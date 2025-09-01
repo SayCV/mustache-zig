@@ -19,6 +19,8 @@ const PathResolutionType = context.PathResolutionType;
 const Escape = context.Escape;
 const ContextIteratorType = context.ContextIteratorType;
 
+const WriterError = std.Io.Writer.Error;
+
 /// Json context can resolve paths for std.json.Value objects
 /// This struct implements the expected context interface using static dispatch.
 /// Pub functions must be kept in sync with other contexts implementation
@@ -101,7 +103,7 @@ pub fn ContextType(
             data_render: *DataRender,
             path: Element.Path,
             escape: Escape,
-        ) (Allocator.Error || Writer.Error)!PathResolutionType(void) {
+        ) (Allocator.Error || WriterError)!PathResolutionType(void) {
             const value = getJsonValue(.Root, self.ctx, path, null);
 
             switch (value) {
@@ -133,7 +135,7 @@ pub fn ContextType(
             inner_text: []const u8,
             escape: Escape,
             delimiters: Delimiters,
-        ) (Allocator.Error || Writer.Error)!PathResolutionType(void) {
+        ) (Allocator.Error || WriterError)!PathResolutionType(void) {
             _ = self;
             _ = data_render;
             _ = path;

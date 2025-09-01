@@ -21,6 +21,8 @@ const ContextIteratorType = context.ContextIteratorType;
 const ffi_exports = @import("../../../exports.zig");
 const extern_types = @import("../../../ffi/extern_types.zig");
 
+const WriterError = std.Io.Writer.Error;
+
 /// FFI context can resolve paths from foreign elements
 /// This struct implements the expected context interface using static dispatch.
 /// Pub functions must be kept in sync with other contexts implementation
@@ -225,7 +227,7 @@ pub fn ContextType(
             data_render: *DataRender,
             path: Element.Path,
             escape: Escape,
-        ) (Allocator.Error || Writer.Error)!PathResolutionType(void) {
+        ) (Allocator.Error || WriterError)!PathResolutionType(void) {
             if (self.user_data.interpolate != null) {
                 if (path.len > 0) {
                     var root_path = extern_types.PathPart{
@@ -272,7 +274,7 @@ pub fn ContextType(
             leaf_path: *extern_types.PathPart,
             path: Element.Path,
             escape: Escape,
-        ) (Allocator.Error || Writer.Error)!PathResolutionType(void) {
+        ) (Allocator.Error || WriterError)!PathResolutionType(void) {
             var current_part: extern_types.PathPart = undefined;
             if (path.len > 0) {
                 current_part = extern_types.PathPart{
@@ -308,7 +310,7 @@ pub fn ContextType(
             data_render: *DataRender,
             root_path: ?*const extern_types.PathPart,
             escape: Escape,
-        ) (Allocator.Error || Writer.Error)!PathResolutionType(void) {
+        ) (Allocator.Error || WriterError)!PathResolutionType(void) {
             var ffi_path: extern_types.Path = .{
                 .root = root_path,
                 .index = 0,
@@ -338,7 +340,7 @@ pub fn ContextType(
             inner_text: []const u8,
             escape: Escape,
             delimiters: Delimiters,
-        ) (Allocator.Error || Writer.Error)!PathResolutionType(void) {
+        ) (Allocator.Error || WriterError)!PathResolutionType(void) {
             _ = self;
             _ = data_render;
             _ = path;

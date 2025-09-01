@@ -23,6 +23,8 @@ const map = @import("../../partials_map.zig");
 const lambda = @import("lambda.zig");
 const invoker = @import("invoker.zig");
 
+const WriterError = std.Io.Writer.Error;
+
 /// This type is a type-erasure container
 /// It is large enough to hold primitives passed by value like pointers,
 /// slices, enums, integers, floats and nullables.
@@ -112,7 +114,7 @@ pub fn ContextInterfaceType(
                 *DataRender,
                 Element.Path,
                 Escape,
-            ) (Allocator.Error || Writer.Error)!PathResolutionType(void),
+            ) (Allocator.Error || WriterError)!PathResolutionType(void),
             expandLambda: *const fn (
                 *const ErasedType,
                 *DataRender,
@@ -120,7 +122,7 @@ pub fn ContextInterfaceType(
                 []const u8,
                 Escape,
                 Delimiters,
-            ) (Allocator.Error || Writer.Error)!PathResolutionType(void),
+            ) (Allocator.Error || WriterError)!PathResolutionType(void),
         };
 
         pub const ContextIterator = ContextIteratorType(ContextInterface);
@@ -170,7 +172,7 @@ pub fn ContextInterfaceType(
             data_render: *DataRender,
             path: Element.Path,
             escape: Escape,
-        ) (Allocator.Error || Writer.Error)!PathResolutionType(void) {
+        ) (Allocator.Error || WriterError)!PathResolutionType(void) {
             return try self.vtable.interpolate(&self.ctx, data_render, path, escape);
         }
 
@@ -181,7 +183,7 @@ pub fn ContextInterfaceType(
             inner_text: []const u8,
             escape: Escape,
             delimiters: Delimiters,
-        ) (Allocator.Error || Writer.Error)!PathResolutionType(void) {
+        ) (Allocator.Error || WriterError)!PathResolutionType(void) {
             return try self.vtable.expandLambda(
                 &self.ctx,
                 data_render,
@@ -256,7 +258,7 @@ pub fn ContextImplType(
             data_render: *DataRender,
             path: Element.Path,
             escape: Escape,
-        ) (Allocator.Error || Writer.Error)!PathResolutionType(void) {
+        ) (Allocator.Error || WriterError)!PathResolutionType(void) {
             return Invoker.interpolate(
                 data_render,
                 ctx.get(Data),
@@ -272,7 +274,7 @@ pub fn ContextImplType(
             inner_text: []const u8,
             escape: Escape,
             delimiters: Delimiters,
-        ) (Allocator.Error || Writer.Error)!PathResolutionType(void) {
+        ) (Allocator.Error || WriterError)!PathResolutionType(void) {
             return Invoker.expandLambda(
                 data_render,
                 ctx.get(Data),

@@ -36,6 +36,7 @@ const map = @import("partials_map.zig");
 
 const FileError = std.fs.File.OpenError || std.fs.File.ReadError;
 const BufError = std.io.FixedBufferStream([]u8).WriteError;
+const WriterError = error{OutOfMemory} || std.Io.Writer.Error;
 
 pub const ContextSource = enum {
     native,
@@ -300,7 +301,7 @@ pub fn renderText(
     template_text: []const u8,
     data: anytype,
     writer: anytype,
-) (Allocator.Error || ParseError || @TypeOf(writer).Error)!void {
+) (Allocator.Error || ParseError || WriterError)!void {
     try renderTextPartialsWithOptions(allocator, template_text, {}, data, writer, .{});
 }
 
@@ -312,7 +313,7 @@ pub fn renderTextWithOptions(
     data: anytype,
     writer: anytype,
     comptime options: mustache.options.RenderFromStringOptions,
-) (Allocator.Error || ParseError || @TypeOf(writer).Error)!void {
+) (Allocator.Error || ParseError || WriterError)!void {
     try renderTextPartialsWithOptions(allocator, template_text, {}, data, writer, options);
 }
 
@@ -324,7 +325,7 @@ pub fn renderTextPartials(
     partials: anytype,
     data: anytype,
     writer: anytype,
-) (Allocator.Error || ParseError || @TypeOf(writer).Error)!void {
+) (Allocator.Error || ParseError || WriterError)!void {
     try renderTextPartialsWithOptions(allocator, template_text, partials, data, writer, .{});
 }
 
@@ -338,7 +339,7 @@ pub fn renderTextPartialsWithOptions(
     data: anytype,
     writer: anytype,
     comptime options: mustache.options.RenderFromStringOptions,
-) (Allocator.Error || ParseError || @TypeOf(writer).Error)!void {
+) (Allocator.Error || ParseError || WriterError)!void {
     const render_options = RenderOptions{ .string = options };
     try internalCollect(allocator, template_text, partials, data, writer, render_options);
 }
@@ -450,7 +451,7 @@ pub fn allocRenderTextZPartialsWithOptions(
 
 /// Parses the file indicated by `template_absolute_path` and renders with
 /// the given `data` to a `writer`.
-pub fn renderFile(allocator: Allocator, template_absolute_path: []const u8, data: anytype, writer: anytype) (Allocator.Error || ParseError || FileError || @TypeOf(writer).Error)!void {
+pub fn renderFile(allocator: Allocator, template_absolute_path: []const u8, data: anytype, writer: anytype) (Allocator.Error || ParseError || FileError || WriterError)!void {
     try renderFilePartialsWithOptions(allocator, template_absolute_path, {}, data, writer, .{});
 }
 
@@ -463,7 +464,7 @@ pub fn renderFileWithOptions(
     data: anytype,
     writer: anytype,
     comptime options: mustache.options.RenderFromFileOptions,
-) (Allocator.Error || ParseError || FileError || @TypeOf(writer).Error)!void {
+) (Allocator.Error || ParseError || FileError || WriterError)!void {
     try renderFilePartialsWithOptions(allocator, template_absolute_path, {}, data, writer, options);
 }
 
@@ -477,7 +478,7 @@ pub fn renderFilePartials(
     partials: anytype,
     data: anytype,
     writer: anytype,
-) (Allocator.Error || ParseError || FileError || @TypeOf(writer).Error)!void {
+) (Allocator.Error || ParseError || FileError || WriterError)!void {
     try renderFilePartialsWithOptions(allocator, template_absolute_path, partials, data, writer, .{});
 }
 
@@ -493,7 +494,7 @@ pub fn renderFilePartialsWithOptions(
     data: anytype,
     writer: anytype,
     comptime options: mustache.options.RenderFromFileOptions,
-) (Allocator.Error || ParseError || FileError || @TypeOf(writer).Error)!void {
+) (Allocator.Error || ParseError || FileError || WriterError)!void {
     const render_options = RenderOptions{ .file = options };
     try internalCollect(allocator, template_absolute_path, partials, data, writer, render_options);
 }
@@ -750,7 +751,7 @@ pub fn RenderEngineType(
         };
 
         pub const DataRender = struct {
-            pub const Error = Allocator.Error || Writer.Error;
+            pub const Error = Allocator.Error || WriterError;
 
             out_writer: OutWriter,
             stack: *const ContextStack,
@@ -832,7 +833,7 @@ pub fn RenderEngineType(
             fn renderLevel(
                 self: *DataRender,
                 elements: []const Element,
-            ) (Allocator.Error || Writer.Error)!void {
+            ) (Allocator.Error || WriterError)!void {
                 var index: usize = 0;
                 while (index < elements.len) {
                     const element = elements[index];
@@ -946,7 +947,7 @@ pub fn RenderEngineType(
                 self: *DataRender,
                 path: Element.Path,
                 escape: Escape,
-            ) (Allocator.Error || Writer.Error)!void {
+            ) (Allocator.Error || WriterError)!void {
                 var level: ?*const ContextStack = self.stack;
 
                 while (level) |current| : (level = current.parent) {
@@ -1010,7 +1011,7 @@ pub fn RenderEngineType(
                 self: *DataRender,
                 value: anytype,
                 escape: Escape,
-            ) (Allocator.Error || Writer.Error)!void {
+            ) (Allocator.Error || WriterError)!void {
                 switch (self.out_writer) {
                     .writer => |writer| switch (escape) {
                         .escaped => try self.recursiveWrite(writer, value, .escaped),
@@ -1027,7 +1028,7 @@ pub fn RenderEngineType(
                 self: *DataRender,
                 value: anytype,
                 escape: Escape,
-            ) (Allocator.Error || Writer.Error)!usize {
+            ) (Allocator.Error || WriterError)!usize {
                 switch (self.out_writer) {
                     .writer => |writer| {
                         var counter = std.io.countingWriter(writer);
@@ -1057,7 +1058,7 @@ pub fn RenderEngineType(
                 writer: anytype,
                 value: anytype,
                 comptime escape: Escape,
-            ) (Allocator.Error || Writer.Error)!void {
+            ) (Allocator.Error || WriterError)!void {
                 const TValue = @TypeOf(value);
 
                 switch (@typeInfo(TValue)) {
@@ -1108,7 +1109,7 @@ pub fn RenderEngineType(
                 writer: anytype,
                 value: []const u8,
                 comptime escape: Escape,
-            ) @TypeOf(writer).Error!void {
+            ) WriterError!void {
                 const escaped = comptime escape == .escaped;
                 const indentation_supported = comptime !PartialsMap.isEmpty();
 
