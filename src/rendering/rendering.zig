@@ -1022,14 +1022,14 @@ pub fn RenderEngineType(
                         .escaped => try self.recursiveWrite(writer, value, .escaped),
                         .unescaped => try self.recursiveWrite(writer, value, .unescaped),
                     },
-                    .buffer => |buffer| switch (escape) {
+                    .buffer => |*buffer| switch (escape) {
                         .escaped => {
-                            var aw: std.Io.Writer.Allocating = .fromArrayList(allocator, &buffer);
+                            var aw: std.Io.Writer.Allocating = .fromArrayList(allocator, buffer);
                             defer buffer.* = aw.toArrayList();
                             try self.recursiveWrite(aw.writer, value, .escaped);
                         },
                         .unescaped => {
-                            var aw: std.Io.Writer.Allocating = .fromArrayList(allocator, &buffer);
+                            var aw: std.Io.Writer.Allocating = .fromArrayList(allocator, buffer);
                             defer buffer.* = aw.toArrayList();
                             try self.recursiveWrite(aw.writer, value, .unescaped);
                         },
