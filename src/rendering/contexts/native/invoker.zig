@@ -352,10 +352,12 @@ pub fn InvokerType(
         }
 
         pub inline fn get(
+            allocator: Allocator,
             data: anytype,
             path: Element.Path,
             index: ?usize,
         ) PathResolutionType(Context) {
+            _ = allocator;
             const GetPathInvoker = PathInvokerType(error{}, Context, getAction);
             return GetPathInvoker.call(
                 {},
@@ -366,6 +368,7 @@ pub fn InvokerType(
         }
 
         pub inline fn interpolate(
+            allocator: Allocator,
             data_render: *DataRender,
             data: anytype,
             path: Element.Path,
@@ -377,7 +380,7 @@ pub fn InvokerType(
                 interpolateAction,
             );
             return InterpolatePathInvoker.call(
-                .{ data_render, escape },
+                .{ allocator, data_render, escape },
                 data,
                 path,
                 null,
@@ -385,10 +388,12 @@ pub fn InvokerType(
         }
 
         pub inline fn capacityHint(
+            allocator: Allocator,
             data_render: *DataRender,
             data: anytype,
             path: Element.Path,
         ) PathResolutionType(usize) {
+            _ = allocator;
             const CapacityHintPathInvoker = PathInvokerType(error{}, usize, capacityHintAction);
             return CapacityHintPathInvoker.call(
                 data_render,
@@ -399,6 +404,7 @@ pub fn InvokerType(
         }
 
         pub inline fn expandLambda(
+            allocator: Allocator,
             data_render: *DataRender,
             data: anytype,
             inner_text: []const u8,
@@ -412,7 +418,7 @@ pub fn InvokerType(
                 expandLambdaAction,
             );
             return ExpandLambdaPathInvoker.call(
-                .{ data_render, inner_text, escape, delimiters },
+                .{ allocator, data_render, inner_text, escape, delimiters },
                 data,
                 path,
                 null,
@@ -428,13 +434,14 @@ pub fn InvokerType(
             params: anytype,
             value: anytype,
         ) (Allocator.Error || WriterError)!void {
-            if (comptime !stdx.isTuple(@TypeOf(params)) and params.len != 2) {
+            if (comptime !stdx.isTuple(@TypeOf(params)) and params.len != 3) {
                 @compileError("Incorrect params " ++ @typeName(@TypeOf(params)));
             }
 
-            var data_render: *DataRender = params.@"0";
-            const escape: Escape = params.@"1";
-            _ = try data_render.write(value, escape);
+            const allocator: Allocator = params.@"0";
+            var data_render: *DataRender = params.@"1";
+            const escape: Escape = params.@"2";
+            _ = try data_render.write(allocator, value, escape);
         }
 
         fn capacityHintAction(
@@ -448,7 +455,7 @@ pub fn InvokerType(
             params: anytype,
             value: anytype,
         ) (Allocator.Error || WriterError)!void {
-            if (comptime !stdx.isTuple(@TypeOf(params)) and params.len != 4) {
+            if (comptime !stdx.isTuple(@TypeOf(params)) and params.len != 5) {
                 @compileError("Incorrect params " ++ @typeName(@TypeOf(params)));
             }
 
@@ -456,10 +463,11 @@ pub fn InvokerType(
 
             const Error = Allocator.Error || WriterError;
 
-            const data_render: *DataRender = params.@"0";
-            const inner_text: []const u8 = params.@"1";
-            const escape: Escape = params.@"2";
-            const delimiters: Delimiters = params.@"3";
+            //const allocator: Allocator = params.@"0";
+            const data_render: *DataRender = params.@"1";
+            const inner_text: []const u8 = params.@"2";
+            const escape: Escape = params.@"3";
+            const delimiters: Delimiters = params.@"4";
 
             const Impl = lambda.LambdaContextImplType(Writer, PartialsMap, options);
             var impl = Impl{

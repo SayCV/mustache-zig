@@ -100,22 +100,26 @@ pub fn ContextInterfaceType(
 
         const VTable = struct {
             get: *const fn (
+                allocator: Allocator,
                 *const ErasedType,
                 Element.Path,
                 ?usize,
             ) PathResolutionType(ContextInterface),
             capacityHint: *const fn (
+                allocator: Allocator,
                 *const ErasedType,
                 *DataRender,
                 Element.Path,
             ) PathResolutionType(usize),
             interpolate: *const fn (
+                allocator: Allocator,
                 *const ErasedType,
                 *DataRender,
                 Element.Path,
                 Escape,
             ) (Allocator.Error || WriterError)!PathResolutionType(void),
             expandLambda: *const fn (
+                allocator: Allocator,
                 *const ErasedType,
                 *DataRender,
                 Element.Path,
@@ -132,25 +136,28 @@ pub fn ContextInterfaceType(
 
         pub inline fn get(
             self: ContextInterface,
+            allocator: Allocator,
             path: Element.Path,
             index: ?usize,
         ) PathResolutionType(ContextInterface) {
-            return self.vtable.get(&self.ctx, path, index);
+            return self.vtable.get(allocator, &self.ctx, path, index);
         }
 
         pub inline fn capacityHint(
             self: ContextInterface,
+            allocator: Allocator,
             data_render: *DataRender,
             path: Element.Path,
         ) PathResolutionType(usize) {
-            return self.vtable.capacityHint(&self.ctx, data_render, path);
+            return self.vtable.capacityHint(allocator, &self.ctx, data_render, path);
         }
 
         pub fn iterator(
             self: *const ContextInterface,
+            allocator: Allocator,
             path: Element.Path,
         ) PathResolutionType(ContextIterator) {
-            const result = self.vtable.get(&self.ctx, path, 0);
+            const result = self.vtable.get(allocator, &self.ctx, path, 0);
 
             return switch (result) {
                 .field => |item| .{
@@ -169,15 +176,17 @@ pub fn ContextInterfaceType(
 
         pub inline fn interpolate(
             self: ContextInterface,
+            allocator: Allocator,
             data_render: *DataRender,
             path: Element.Path,
             escape: Escape,
         ) (Allocator.Error || WriterError)!PathResolutionType(void) {
-            return try self.vtable.interpolate(&self.ctx, data_render, path, escape);
+            return try self.vtable.interpolate(allocator, &self.ctx, data_render, path, escape);
         }
 
         pub inline fn expandLambda(
             self: ContextInterface,
+            allocator: Allocator,
             data_render: *DataRender,
             path: Element.Path,
             inner_text: []const u8,
@@ -185,6 +194,7 @@ pub fn ContextInterfaceType(
             delimiters: Delimiters,
         ) (Allocator.Error || WriterError)!PathResolutionType(void) {
             return try self.vtable.expandLambda(
+                allocator,
                 &self.ctx,
                 data_render,
                 path,
@@ -230,11 +240,13 @@ pub fn ContextImplType(
         }
 
         fn get(
+            allocator: Allocator,
             ctx: *const ErasedType,
             path: Element.Path,
             index: ?usize,
         ) PathResolutionType(Context) {
             return Invoker.get(
+                allocator,
                 ctx.get(Data),
                 path,
                 index,
@@ -242,11 +254,13 @@ pub fn ContextImplType(
         }
 
         fn capacityHint(
+            allocator: Allocator,
             ctx: *const ErasedType,
             data_render: *DataRender,
             path: Element.Path,
         ) PathResolutionType(usize) {
             return Invoker.capacityHint(
+                allocator,
                 data_render,
                 ctx.get(Data),
                 path,
@@ -254,12 +268,14 @@ pub fn ContextImplType(
         }
 
         fn interpolate(
+            allocator: Allocator,
             ctx: *const ErasedType,
             data_render: *DataRender,
             path: Element.Path,
             escape: Escape,
         ) (Allocator.Error || WriterError)!PathResolutionType(void) {
             return Invoker.interpolate(
+                allocator,
                 data_render,
                 ctx.get(Data),
                 path,
@@ -268,6 +284,7 @@ pub fn ContextImplType(
         }
 
         fn expandLambda(
+            allocator: Allocator,
             ctx: *const ErasedType,
             data_render: *DataRender,
             path: Element.Path,
@@ -276,6 +293,7 @@ pub fn ContextImplType(
             delimiters: Delimiters,
         ) (Allocator.Error || WriterError)!PathResolutionType(void) {
             return Invoker.expandLambda(
+                allocator,
                 data_render,
                 ctx.get(Data),
                 inner_text,

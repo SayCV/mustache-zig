@@ -115,8 +115,8 @@ pub fn ContextIteratorType(comptime ContextInterface: type) type {
                     finished,
                 },
 
-                fn fetch(self: @This(), index: usize) ?ContextInterface {
-                    const result = self.context.get(self.path, index);
+                fn fetch(self: @This(), allocator: Allocator, index: usize) ?ContextInterface {
+                    const result = self.context.get(allocator, self.path, index);
 
                     return switch (result) {
                         .field => |item| item,
@@ -180,13 +180,13 @@ pub fn ContextIteratorType(comptime ContextInterface: type) type {
             }
         }
 
-        pub fn next(self: *Iterator) ?ContextInterface {
+        pub fn next(self: *Iterator, allocator: Allocator) ?ContextInterface {
             switch (self.data) {
                 .lambda, .empty => return null,
                 .sequence => |*sequence| switch (sequence.state) {
                     .fetching => |current| {
                         const next_index = current.index + 1;
-                        if (sequence.fetch(next_index)) |item| {
+                        if (sequence.fetch(allocator, next_index)) |item| {
                             sequence.state = .{
                                 .fetching = .{
                                     .item = item,

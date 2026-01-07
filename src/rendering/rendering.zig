@@ -802,7 +802,7 @@ pub fn RenderEngineType(
                 switch (self.out_writer) {
                     .buffer => |buffer| {
                         var list = buffer;
-                        const capacity_hint = self.levelCapacityHint(elements);
+                        const capacity_hint = self.levelCapacityHint(allocator, elements);
 
                         // Add extra 25% extra capacity for HTML escapes, indentation, etc
                         try list.ensureUnusedCapacity(allocator, capacity_hint + (capacity_hint / 4));
@@ -810,7 +810,7 @@ pub fn RenderEngineType(
                     else => {},
                 }
 
-                try self.renderLevel(elements);
+                try self.renderLevel(allocator, elements);
             }
 
             inline fn lambdasSupported(self: DataRender) bool {
@@ -832,6 +832,7 @@ pub fn RenderEngineType(
 
             fn renderLevel(
                 self: *DataRender,
+                allocator: Allocator,
                 elements: []const Element,
             ) (Allocator.Error || WriterError)!void {
                 var index: usize = 0;
@@ -840,14 +841,14 @@ pub fn RenderEngineType(
                     index += 1;
 
                     switch (element) {
-                        .static_text => |content| _ = try self.write(content, .unescaped),
-                        .interpolation => |path| try self.interpolate(path, .escaped),
-                        .unescaped_interpolation => |path| try self.interpolate(path, .unescaped),
+                        .static_text => |content| _ = try self.write(allocator, content, .unescaped),
+                        .interpolation => |path| try self.interpolate(allocator, path, .escaped),
+                        .unescaped_interpolation => |path| try self.interpolate(allocator, path, .unescaped),
                         .section => |section| {
                             const section_children = elements[index .. index + section.children_count];
                             index += section.children_count;
 
-                            var resolve_path = self.getIterator(section.path);
+                            var resolve_path = self.getIterator(allocator, section.path);
                             if (resolve_path) |*iterator| {
                                 if (self.lambdasSupported()) {
                                     if (iterator.lambda()) |lambda_ctx| {
@@ -855,6 +856,7 @@ pub fn RenderEngineType(
                                         assert(section.delimiters != null);
 
                                         const expand_result = try lambda_ctx.expandLambda(
+                                            allocator,
                                             self,
                                             &.{},
                                             section.inner_text.?,
@@ -865,7 +867,7 @@ pub fn RenderEngineType(
                                         continue;
                                     }
                                 }
-                                while (iterator.next()) |item_ctx| {
+                                while (iterator.next(allocator)) |item_ctx| {
                                     const current_level = self.stack;
                                     const next_level = ContextStack{
                                         .parent = current_level,
@@ -875,7 +877,7 @@ pub fn RenderEngineType(
                                     self.stack = &next_level;
                                     defer self.stack = current_level;
 
-                                    try self.renderLevel(section_children);
+                                    try self.renderLevel(allocator, section_children);
                                 }
                             }
                         },
@@ -886,13 +888,13 @@ pub fn RenderEngineType(
                             // Lambdas aways evaluate as "true" for inverted section
                             // Broken paths, empty lists, null and false evaluates as "false"
 
-                            const truthy = if (self.getIterator(section.path)) |iterator|
+                            const truthy = if (self.getIterator(allocator, section.path)) |iterator|
                                 iterator.truthy()
                             else
                                 false;
 
                             if (!truthy) {
-                                try self.renderLevel(section_children);
+                                try self.renderLevel(allocator, section_children);
                             }
                         },
 
@@ -935,7 +937,7 @@ pub fn RenderEngineType(
 
                 switch (options) {
                     .template => {
-                        try self.render(partial_template.elements);
+                        try self.render(self.partials_map.allocator, partial_template.elements);
                     },
                     .string, .file => {
                         self.collect(self.partials_map.allocator, partial_template) catch unreachable;
@@ -945,13 +947,14 @@ pub fn RenderEngineType(
 
             fn interpolate(
                 self: *DataRender,
+                allocator: Allocator,
                 path: Element.Path,
                 escape: Escape,
             ) (Allocator.Error || WriterError)!void {
                 var level: ?*const ContextStack = self.stack;
 
                 while (level) |current| : (level = current.parent) {
-                    const path_resolution = try current.ctx.interpolate(self, path, escape);
+                    const path_resolution = try current.ctx.interpolate(allocator, self, path, escape);
 
                     switch (path_resolution) {
                         .field => {
@@ -962,7 +965,7 @@ pub fn RenderEngineType(
                         .lambda => {
 
                             // Expand the lambda against the current context and break the loop
-                            const expand_result = try current.ctx.expandLambda(self, path, "", escape, .{});
+                            const expand_result = try current.ctx.expandLambda(allocator, self, path, "", escape, .{});
                             assert(expand_result == .lambda);
                             break;
                         },
@@ -982,12 +985,13 @@ pub fn RenderEngineType(
 
             fn getIterator(
                 self: *DataRender,
+                allocator: Allocator,
                 path: Element.Path,
             ) ?Context.ContextIterator {
                 var level: ?*const ContextStack = self.stack;
 
                 while (level) |current| : (level = current.parent) {
-                    switch (current.ctx.iterator(path)) {
+                    switch (current.ctx.iterator(allocator, path)) {
                         .field => |found| return found,
 
                         .lambda => |found| return found,
@@ -1020,11 +1024,13 @@ pub fn RenderEngineType(
                     },
                     .buffer => |buffer| switch (escape) {
                         .escaped => {
-                            var aw: std.Io.Writer.Allocating = .fromArrayList(allocator, buffer);
+                            var aw: std.Io.Writer.Allocating = .fromArrayList(allocator, &buffer);
+                            defer buffer.* = aw.toArrayList();
                             try self.recursiveWrite(aw.writer, value, .escaped);
                         },
                         .unescaped => {
-                            var aw: std.Io.Writer.Allocating = .fromArrayList(allocator, buffer);
+                            var aw: std.Io.Writer.Allocating = .fromArrayList(allocator, &buffer);
+                            defer buffer.* = aw.toArrayList();
                             try self.recursiveWrite(aw.writer, value, .unescaped);
                         },
                     },
@@ -1180,6 +1186,7 @@ pub fn RenderEngineType(
 
             fn levelCapacityHint(
                 self: *DataRender,
+                allocator: Allocator,
                 elements: []const Element,
             ) usize {
                 var size: usize = 0;
@@ -1191,12 +1198,12 @@ pub fn RenderEngineType(
 
                     switch (element) {
                         .static_text => |content| size += content.len,
-                        .interpolation, .unescaped_interpolation => |path| size += self.pathCapacityHint(path),
+                        .interpolation, .unescaped_interpolation => |path| size += self.pathCapacityHint(allocator, path),
                         .section => |section| {
                             const section_children = elements[index .. index + section.children_count];
                             index += section.children_count;
 
-                            var resolve_path = self.getIterator(section.path);
+                            var resolve_path = self.getIterator(allocator, section.path);
                             if (resolve_path) |*iterator| {
                                 while (iterator.next()) |item_ctx| {
                                     const current_level = self.stack;
@@ -1208,7 +1215,7 @@ pub fn RenderEngineType(
                                     self.stack = &next_level;
                                     defer self.stack = current_level;
 
-                                    size += self.levelCapacityHint(section_children);
+                                    size += self.levelCapacityHint(allocator, section_children);
                                 }
                             }
                         },
@@ -1216,9 +1223,9 @@ pub fn RenderEngineType(
                             const section_children = elements[index .. index + section.children_count];
                             index += section.children_count;
 
-                            const truthy = if (self.getIterator(section.path)) |iterator| iterator.truthy() else false;
+                            const truthy = if (self.getIterator(allocator, section.path)) |iterator| iterator.truthy() else false;
                             if (!truthy) {
-                                size += self.levelCapacityHint(section_children);
+                                size += self.levelCapacityHint(allocator, section_children);
                             }
                         },
 
@@ -1231,12 +1238,13 @@ pub fn RenderEngineType(
 
             fn pathCapacityHint(
                 self: *DataRender,
+                allocator: Allocator,
                 path: Element.Path,
             ) usize {
                 var level: ?*const ContextStack = self.stack;
 
                 while (level) |current| : (level = current.parent) {
-                    const path_resolution = current.ctx.capacityHint(self, path);
+                    const path_resolution = current.ctx.capacityHint(allocator, self, path);
 
                     switch (path_resolution) {
                         .field => |size| return size,
