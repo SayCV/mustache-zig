@@ -1009,6 +1009,7 @@ pub fn RenderEngineType(
 
             pub fn write(
                 self: *DataRender,
+                allocator: Allocator,
                 value: anytype,
                 escape: Escape,
             ) (Allocator.Error || WriterError)!void {
@@ -1019,10 +1020,13 @@ pub fn RenderEngineType(
                     },
                     .buffer => |buffer| switch (escape) {
                         .escaped => {
-                            var aw: std.Io.Writer.Allocating = .fromArrayList(buffer);
+                            var aw: std.Io.Writer.Allocating = .fromArrayList(allocator, buffer);
                             try self.recursiveWrite(aw.writer, value, .escaped);
                         },
-                        .unescaped => try self.recursiveWrite(buffer, value, .unescaped),
+                        .unescaped => {
+                            var aw: std.Io.Writer.Allocating = .fromArrayList(allocator, buffer);
+                            try self.recursiveWrite(aw.writer, value, .unescaped);
+                        },
                     },
                 }
             }

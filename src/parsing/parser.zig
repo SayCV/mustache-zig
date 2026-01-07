@@ -365,7 +365,7 @@ pub fn ParserType(comptime options: TemplateOptions) type {
 
             defer if (options.isRefCounted()) self.unRefNodes();
 
-            var list: std.ArrayListUnmanaged(Element) = .{};
+            var list: std.ArrayList(Element) = .empty;
 
             if (options.load_mode == .runtime_loaded) {
                 try list.ensureTotalCapacityPrecise(self.gpa, nodes.items.len);
@@ -391,7 +391,7 @@ pub fn ParserType(comptime options: TemplateOptions) type {
             }
 
             const elements = if (options.output == .render or options.load_mode == .comptime_loaded) list.items else try list.toOwnedSlice(self.gpa);
-            try render.render(elements);
+            try render.render(self.gpa, elements);
         }
 
         fn unRefNodes(self: *Parser) void {
