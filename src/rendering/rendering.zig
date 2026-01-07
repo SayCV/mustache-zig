@@ -699,8 +699,8 @@ fn internalAllocCollect(
 ) !if (sentinel) |z| [:z]const u8 else []const u8 {
     comptime assert(options != .template);
 
-    var list = std.array_list.Managed(u8).init(allocator);
-    defer list.deinit();
+    var list: std.ArrayList(u8) = .empty;
+    defer list.deinit(allocator);
 
     const context_source = comptime ContextSource.fromData(@TypeOf(data));
     const Writer = @TypeOf(std.io.null_writer);
@@ -747,7 +747,7 @@ pub fn RenderEngineType(
 
             /// Render to a intermediate buffer
             /// for processing lambda expansions
-            buffer: std.array_list.Managed(u8).Writer,
+            buffer: std.ArrayList(u8),
         };
 
         pub const DataRender = struct {
@@ -798,14 +798,14 @@ pub fn RenderEngineType(
                 }
             }
 
-            pub fn render(self: *DataRender, elements: []const Element) !void {
+            pub fn render(self: *DataRender, allocator: Allocator, elements: []const Element) !void {
                 switch (self.out_writer) {
                     .buffer => |buffer| {
-                        var list = buffer.context;
+                        var list = buffer;
                         const capacity_hint = self.levelCapacityHint(elements);
 
                         // Add extra 25% extra capacity for HTML escapes, indentation, etc
-                        try list.ensureUnusedCapacity(capacity_hint + (capacity_hint / 4));
+                        try list.ensureUnusedCapacity(allocator, capacity_hint + (capacity_hint / 4));
                     },
                     else => {},
                 }
@@ -1018,7 +1018,10 @@ pub fn RenderEngineType(
                         .unescaped => try self.recursiveWrite(writer, value, .unescaped),
                     },
                     .buffer => |buffer| switch (escape) {
-                        .escaped => try self.recursiveWrite(buffer, value, .escaped),
+                        .escaped => {
+                            var aw: std.Io.Writer.Allocating = .fromArrayList(buffer);
+                            try self.recursiveWrite(aw.writer, value, .escaped);
+                        },
                         .unescaped => try self.recursiveWrite(buffer, value, .unescaped),
                     },
                 }
@@ -1329,7 +1332,7 @@ pub fn RenderEngineType(
             }
         }
 
-        pub fn render(template: Template, data: anytype, writer: Writer, partials_map: PartialsMap) !void {
+        pub fn render(allocator: Allocator, template: Template, data: anytype, writer: Writer, partials_map: PartialsMap) !void {
             comptime assert(options == .template);
 
             const Data = @TypeOf(data);
@@ -1349,10 +1352,10 @@ pub fn RenderEngineType(
                 .template_options = template.options,
             };
 
-            try data_render.render(template.elements);
+            try data_render.render(allocator, template.elements);
         }
 
-        pub fn bufRender(writer: std.array_list.Managed(u8).Writer, template: Template, data: anytype, partials_map: PartialsMap) !void {
+        pub fn bufRender(allocator: Allocator, buffer: std.ArrayList(u8), template: Template, data: anytype, partials_map: PartialsMap) !void {
             comptime assert(options == .template);
 
             const Data = @TypeOf(data);
@@ -1365,14 +1368,14 @@ pub fn RenderEngineType(
             };
 
             var data_render = DataRender{
-                .out_writer = .{ .buffer = writer },
+                .out_writer = .{ .buffer = buffer },
                 .partials_map = partials_map,
                 .stack = &context_stack,
                 .indentation_queue = &indentation_queue,
                 .template_options = template.options,
             };
 
-            try data_render.render(template.elements);
+            try data_render.render(allocator, template.elements);
         }
 
         pub fn collect(
@@ -1406,7 +1409,7 @@ pub fn RenderEngineType(
 
         pub fn bufCollect(
             allocator: Allocator,
-            writer: std.array_list.Managed(u8).Writer,
+            buffer: std.ArrayList(u8),
             template: []const u8,
             data: anytype,
             partials_map: PartialsMap,
@@ -1423,7 +1426,7 @@ pub fn RenderEngineType(
             };
 
             var data_render = DataRender{
-                .out_writer = .{ .buffer = writer },
+                .out_writer = .{ .buffer = buffer },
                 .partials_map = partials_map,
                 .stack = &context_stack,
                 .indentation_queue = &indentation_queue,
