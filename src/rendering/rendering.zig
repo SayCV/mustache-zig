@@ -1026,12 +1026,12 @@ pub fn RenderEngineType(
                         .escaped => {
                             var aw: std.Io.Writer.Allocating = .fromArrayList(allocator, buffer);
                             defer buffer.* = aw.toArrayList();
-                            try self.recursiveWrite(aw.writer, value, .escaped);
+                            try self.recursiveWrite(&aw.writer, value, .escaped);
                         },
                         .unescaped => {
                             var aw: std.Io.Writer.Allocating = .fromArrayList(allocator, buffer);
                             defer buffer.* = aw.toArrayList();
-                            try self.recursiveWrite(aw.writer, value, .unescaped);
+                            try self.recursiveWrite(&aw.writer, value, .unescaped);
                         },
                     },
                 }
@@ -1205,7 +1205,7 @@ pub fn RenderEngineType(
 
                             var resolve_path = self.getIterator(allocator, section.path);
                             if (resolve_path) |*iterator| {
-                                while (iterator.next()) |item_ctx| {
+                                while (iterator.next(allocator)) |item_ctx| {
                                     const current_level = self.stack;
                                     const next_level = ContextStack{
                                         .parent = current_level,
