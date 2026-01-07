@@ -67,7 +67,7 @@ pub inline fn getRuntimeValue(ctx: anytype) type: {
         RuntimeInt(ctx)
     else if (TContext == comptime_float)
         RuntimeFloat(ctx)
-    else if (TContext == @Type(.null))
+    else if (TContext == @TypeOf(null))
         ?u0
     else
         TContext;
@@ -101,7 +101,7 @@ pub inline fn getTupleElement(ctx: anytype, comptime index: usize) element_type:
     } else if (ElementType == comptime_float) {
         const comptime_value = ctx[index];
         break :element_type RuntimeFloat(comptime_value);
-    } else if (ElementType == @Type(.null)) {
+    } else if (ElementType == @TypeOf(null)) {
         break :element_type ?u0;
     } else if (byValue(ElementType)) {
         break :element_type ElementType;
@@ -118,7 +118,7 @@ pub inline fn getTupleElement(ctx: anytype, comptime index: usize) element_type:
         const comptime_value = ctx[index];
         const runtime_value: RuntimeFloat(comptime_value) = comptime_value;
         return runtime_value;
-    } else if (ElementType == @Type(.null)) {
+    } else if (ElementType == @TypeOf(null)) {
         const runtime_null: ?u0 = null;
         return runtime_null;
     } else if (comptime byValue(ElementType)) {
@@ -209,10 +209,10 @@ pub fn byValue(comptime TField: type) bool {
 
         const can_embed = size <= max_size and
             switch (@typeInfo(TField)) {
-            .@"enum", .enum_literal, .bool, .int, .float => true,
-            .optional => |info| byValue(info.child),
-            else => false,
-        };
+                .@"enum", .enum_literal, .bool, .int, .float => true,
+                .optional => |info| byValue(info.child),
+                else => false,
+            };
 
         return is_json or is_ffi_userdata or is_zero_size or is_pointer or is_lambda_invoker or can_embed;
     }

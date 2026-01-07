@@ -72,8 +72,8 @@ pub fn build(b: *std.Build) void {
         c_sample.root_module.addCSourceFile(.{
             .file = b.path("samples/c/sample.c"),
         });
-        c_sample.linkLibrary(static_lib);
-        c_sample.linkLibC();
+        c_sample.root_module.linkLibrary(static_lib);
+        c_sample.root_module.link_libc = true;
 
         const run_cmd = b.addRunArtifact(c_sample);
         run_cmd.step.dependOn(b.getInstallStep());
