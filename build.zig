@@ -77,9 +77,6 @@ pub fn build(b: *std.Build) void {
 
         const run_cmd = b.addRunArtifact(c_sample);
         run_cmd.step.dependOn(b.getInstallStep());
-        if (b.args) |args| {
-            run_cmd.addArgs(args);
-        }
 
         const c_sample_build = b.step("c_sample", "Run the C sample");
         c_sample_build.dependOn(&run_cmd.step);
