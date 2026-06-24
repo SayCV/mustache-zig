@@ -172,10 +172,10 @@ pub fn InvokerType(
                     next_path_parts: Element.Path,
                     index: ?usize,
                 ) TError!PathResolution {
-                    const fields = std.meta.fields(TValue);
-                    inline for (fields) |field| {
-                        if (std.mem.eql(u8, field.name, current_path_part)) {
-                            return try find(.Leaf, action_param, Fields.getField(data, field.name), next_path_parts, index);
+                    const field_names = comptime std.meta.fieldNames(TValue);
+                    inline for (field_names) |field_name| {
+                        if (std.mem.eql(u8, field_name, current_path_part)) {
+                            return try find(.Leaf, action_param, Fields.getField(data, field_name), next_path_parts, index);
                         }
                     } else {
                         if (next_path_parts.len == 0) {
