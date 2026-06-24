@@ -93,7 +93,7 @@ pub fn ParserType(comptime options: TemplateOptions) type {
             self: *Parser,
             render: anytype,
         ) (LoadError || RenderError(@TypeOf(render)))!bool {
-            self.inner_state.nodes = Node.List{};
+            self.inner_state.nodes = .empty;
             var nodes = &self.inner_state.nodes;
 
             self.inner_state.text_scanner.nodes = nodes;
